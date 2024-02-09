@@ -55,6 +55,7 @@ def rotate_backup(backup_destination : str, retention_period_days : int):
 
     Args:
     backup_destination (str): Remote destination in the cloud storage where the backups are stored.
+    retention_period_days (int): The amount of days while the backups are being kept
     """
     # Get the list of backup directories
     backup_directories = subprocess.check_output(['rclone', 'lsd', backup_destination]).decode('utf-8').split('\n')
