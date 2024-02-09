@@ -8,3 +8,4 @@ Parameters:
 * cloud_destination: cloud destination(including the directory) to sync with your local directory
 * backup_destination: backup destination(including the directory) to sync with your local directory
 * retention_period_days: how many days you want to keep your backups
+* extra_args: any extra arguments you want to add
