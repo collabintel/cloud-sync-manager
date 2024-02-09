@@ -65,12 +65,12 @@ def rotate_backup(backup_destination : str, retention_period_days : int):
     backup_directories = subprocess.check_output(['rclone', 'lsd', backup_destination]).decode('utf-8').split('\n')
     backup_directories = [d.split()[-1] for d in backup_directories if d]
 
-    # Calculate the date 30 days ago
-    thirty_days_ago = (datetime.now() - timedelta(days=retention_period_days)).strftime('%Y-%m-%d')
+    # Calculate the retention period date
+    retention_period_date = (datetime.now() - timedelta(days=retention_period_days)).strftime('%Y-%m-%d')
 
-    # Delete backup directories older than 30 days
+    # Delete backup directories older than retention period date
     for directory in backup_directories:
-        if directory < thirty_days_ago:
+        if directory < retention_period_date:
             try:
                 subprocess.run(['rclone', 'purge', os.path.join(backup_destination, directory)], check=True)
                 print(f"Deleted backup directory: {directory}")
