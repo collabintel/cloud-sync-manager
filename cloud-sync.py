@@ -13,7 +13,7 @@ def sync_directory_to_cloud(local_directory : str, cloud_destination : str, extr
     extra_args (list): Extra arguments to pass to rclone calls.
     """
     # Construct the rclone sync command
-    rclone_sync_command = ['rclone', 'bisync', local_directory, cloud_destination]
+    rclone_sync_command = ['rclone', 'bisync', cloud_destination, local_directory]
     if extra_args:
         rclone_sync_command.extend(extra_args)
 
@@ -37,13 +37,17 @@ def backup_directory_to_cloud(local_directory : str, backup_destination : str, e
     today = datetime.now().strftime('%Y-%m-%d')
     backup_directory = os.path.join(backup_destination, today)
 
+    # Create the directory if it doesn't already exist.
+    rclone_mkdir_command = ['rclone', 'mkdir', backup_directory]
+
     # Construct the rclone sync command for backup
-    rclone_backup_command = ['rclone', 'bisync', local_directory, backup_directory]
+    rclone_backup_command = ['rclone', 'bisync', backup_directory, local_directory, '--resync']
     if extra_args:
         rclone_backup_command.extend(extra_args)
 
     # Run the rclone backup command
     try:
+        subprocess.run(rclone_mkdir_command, check=True)
         subprocess.run(rclone_backup_command, check=True)
         print("Backup completed successfully!")
     except subprocess.CalledProcessError as e:
@@ -82,7 +86,7 @@ if __name__ == "__main__":
     local_directory = sys.argv[1]
     cloud_destination = sys.argv[2]
     backup_destination = sys.argv[3]
-    retention_period_days = sys.argv[4]
+    retention_period_days = int(sys.argv[4])
 
     extra_args = sys.argv[5:] if len(sys.argv) > 5 else None
 
