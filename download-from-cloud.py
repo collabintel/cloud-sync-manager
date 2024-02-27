@@ -53,24 +53,23 @@ def backup_directory_to_cloud(local_directory : str, backup_destination : str, e
     except subprocess.CalledProcessError as e:
         print(f"Error backing up directory: {e}")
 
-def rotate_backup(backup_destination : str, retention_period_days : int):
+def rotate_backup(backup_destination : str, backup_retention : int):
     """
-    Rotates the backups to retain only the backups from the last 30 days.
+    Rotates the backups to retain only the amount of backups with given retention
 
     Args:
     backup_destination (str): Remote destination in the cloud storage where the backups are stored.
-    retention_period_days (int): The amount of days while the backups are being kept
+    backup_retention (int): The amount of backups permitted
     """
     # Get the list of backup directories
     backup_directories = subprocess.check_output(['rclone', 'lsd', backup_destination]).decode('utf-8').split('\n')
     backup_directories = [d.split()[-1] for d in backup_directories if d]
 
-    # Calculate the retention period date
-    retention_period_date = (datetime.now() - timedelta(days=retention_period_days)).strftime('%Y-%m-%d')
-
-    # Delete backup directories older than retention period date
-    for directory in backup_directories:
-        if directory < retention_period_date:
+    if len(backup_directories) > backup_retention:
+        # Delete backup directories more than the given backup retention
+        amount_of_backups_to_remove = len(backup_directories) - backup_retention
+        for backup_index in range(amount_of_backups_to_remove):
+            directory = backup_directories[backup_index]
             try:
                 subprocess.run(['rclone', 'purge', os.path.join(backup_destination, directory)], check=True)
                 print(f"Deleted backup directory: {directory}")
@@ -80,16 +79,16 @@ def rotate_backup(backup_destination : str, retention_period_days : int):
 # Example usage
 if __name__ == "__main__":
     if len(sys.argv) < 5:
-        print("Usage: python cloud-sync.py local_directory cloud_destination backup_destination retention_period_days [extra_args]")
+        print("Usage: python cloud-sync.py local_directory cloud_destination backup_destination backup_retention [extra_args]")
         sys.exit(1)
 
     local_directory = sys.argv[1]
     cloud_destination = sys.argv[2]
     backup_destination = sys.argv[3]
-    retention_period_days = int(sys.argv[4])
+    backup_retention = int(sys.argv[4])
 
     extra_args = sys.argv[5:] if len(sys.argv) > 5 else None
 
     backup_directory_to_cloud(local_directory=local_directory, backup_destination=backup_destination, extra_args=extra_args)
-    rotate_backup(backup_destination=backup_destination, retention_period_days=retention_period_days)
+    rotate_backup(backup_destination=backup_destination, backup_retention=backup_retention)
     download_from_cloud(local_directory=local_directory, cloud_destination=cloud_destination, extra_args=extra_args)
