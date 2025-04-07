@@ -1,19 +1,19 @@
 import subprocess
 import os
 from datetime import datetime, timedelta
-import sys
+from argparse import ArgumentParser
 
-def upload_to_cloud(local_directory : str, cloud_destination : str, extra_args : list = None):
+def download_from_remote(local_directory : str, remote_destination : str, extra_args : list = None):
     """
-    Syncs a local directory to a cloud storage destination using rclone.
+    Syncs a local directory to a remote storage destination using rclone.
 
     Args:
     local_directory (str): Path to the local directory to be synced.
-    cloud_destination (str): Remote destination in the cloud storage where the directory will be synced.
+    remote_destination (str): Remote destination in the remote storage where the directory will be synced.
     extra_args (list): Extra arguments to pass to rclone calls.
     """
     # Construct the rclone sync command
-    rclone_sync_command = ['rclone', 'sync', local_directory, cloud_destination]
+    rclone_sync_command = ['rclone', 'sync', remote_destination, local_directory]
     if extra_args:
         rclone_sync_command.extend(extra_args)
 
@@ -24,13 +24,13 @@ def upload_to_cloud(local_directory : str, cloud_destination : str, extra_args :
     except subprocess.CalledProcessError as e:
         print(f"Error syncing directory: {e}")
 
-def backup_directory_to_cloud(local_directory : str, backup_destination : str, extra_args : list = None):
+def backup_directory_to_remote(local_directory : str, backup_destination : str, extra_args : list = None):
     """
-    Backs up a local directory to a backup destination in the cloud.
+    Backs up a local directory to a backup destination in the remote.
 
     Args:
     local_directory (str): Path to the local directory to be backed up.
-    backup_destination (str): Remote destination in the cloud storage where the backup will be stored.
+    backup_destination (str): Remote destination in the remote storage where the backup will be stored.
     extra_args (list): Extra arguments to pass to rclone calls.
     """
     # Create a directory for today's backup
@@ -58,7 +58,7 @@ def rotate_backup(backup_destination : str, backup_retention : int):
     Rotates the backups to retain only the amount of backups with given retention
 
     Args:
-    backup_destination (str): Remote destination in the cloud storage where the backups are stored.
+    backup_destination (str): Remote destination in the remote storage where the backups are stored.
     backup_retention (int): The amount of backups permitted
     """
     # Get the list of backup directories
@@ -78,17 +78,25 @@ def rotate_backup(backup_destination : str, backup_retention : int):
 
 # Example usage
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
-        print("Usage: python cloud-sync.py local_directory cloud_destination backup_destination backup_retention [extra_args]")
-        sys.exit(1)
+    parser = ArgumentParser(
+        prog="download-from-remote",
+        description="Download files from a remote location to your local directory"
+    )
 
-    local_directory = sys.argv[1]
-    cloud_destination = sys.argv[2]
-    backup_destination = sys.argv[3]
-    backup_retention = int(sys.argv[4])
+    parser.add_argument("--local-directory", action="store", type=str, required=True, help="Local directory to sync to")
+    parser.add_argument("--remote-destination", action="store", type=str, required=True, help="Remote destination to sync from")
+    parser.add_argument("--backup-destination", action="store", type=str, required=True, help="Backup destination to sync to")
+    parser.add_argument("--backup-retention", action="store", type=int, default=7, help="Backup retention in days")
+    parser.add_argument("--extra-args", action="append", help="Extra args to pass to rclone")
 
-    extra_args = sys.argv[5:] if len(sys.argv) > 5 else None
+    cli_args = parser.parse_args()
 
-    upload_to_cloud(local_directory=local_directory, cloud_destination=cloud_destination, extra_args=extra_args)
-    backup_directory_to_cloud(local_directory=local_directory, backup_destination=backup_destination, extra_args=extra_args)
+    local_directory = cli_args.local_directory
+    remote_destination = cli_args.remote_destination
+    backup_destination = cli_args.backup_destination
+    backup_retention = cli_args.backup_retention
+    extra_args = cli_args.extra_args
+
+    backup_directory_to_remote(local_directory=local_directory, backup_destination=backup_destination, extra_args=extra_args)
     rotate_backup(backup_destination=backup_destination, backup_retention=backup_retention)
+    download_from_remote(local_directory=local_directory, remote_destination=remote_destination, extra_args=extra_args)
